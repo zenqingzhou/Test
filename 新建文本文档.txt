@@ -1,1 +1,83 @@
-FV8EM46DQYC5AW9-eyJsaWNlbnNlSWQiOiJGVjhFTTQ2RFFZQzVBVzkiLCJsaWNlbnNlZU5hbWUiOiJtZW5vcmFoIHBhcmFwZXQiLCJsaWNlbnNlZVR5cGUiOiJQRVJTT05BTCIsImFzc2lnbmVlTmFtZSI6IiIsImFzc2lnbmVlRW1haWwiOiIiLCJsaWNlbnNlUmVzdHJpY3Rpb24iOiIiLCJjaGVja0NvbmN1cnJlbnRVc2UiOmZhbHNlLCJwcm9kdWN0cyI6W3siY29kZSI6IlBDV01QIiwiZmFsbGJhY2tEYXRlIjoiMjAyNi0wOS0xNCIsInBhaWRVcFRvIjoiMjAyNi0wOS0xNCIsImV4dGVuZGVkIjp0cnVlfSx7ImNvZGUiOiJQUlIiLCJmYWxsYmFja0RhdGUiOiIyMDI2LTA5LTE0IiwicGFpZFVwVG8iOiIyMDI2LTA5LTE0IiwiZXh0ZW5kZWQiOnRydWV9LHsiY29kZSI6IlBEQiIsImZhbGxiYWNrRGF0ZSI6IjIwMjYtMDktMTQiLCJwYWlkVXBUbyI6IjIwMjYtMDktMTQiLCJleHRlbmRlZCI6dHJ1ZX0seyJjb2RlIjoiUFNJIiwiZmFsbGJhY2tEYXRlIjoiMjAyNi0wOS0xNCIsInBhaWRVcFRvIjoiMjAyNi0wOS0xNCIsImV4dGVuZGVkIjp0cnVlfSx7ImNvZGUiOiJJSSIsImZhbGxiYWNrRGF0ZSI6IjIwMjYtMDktMTQiLCJwYWlkVXBUbyI6IjIwMjYtMDktMTQiLCJleHRlbmRlZCI6ZmFsc2V9XSwibWV0YWRhdGEiOiIwMjIwMjQwNzAyUFNBWDAwMDAwNVgiLCJoYXNoIjoiMTIzNDU2NzgvMC01NDE4MTY2MjkiLCJncmFjZVBlcmlvZERheXMiOjcsImF1dG9Qcm9sb25nYXRlZCI6ZmFsc2UsImlzQXV0b1Byb2xvbmdhdGVkIjpmYWxzZSwidHJpYWwiOmZhbHNlLCJhaUFsbG93ZWQiOnRydWV9-cH8qBniG31nF8954hthJJuzF6Fk4RQ9T03IfNxsFkuxUcwaAGHKOcRudvBZIAbLwDDFw63q2QZsnpwthBb/6IqBYnJrjRC83a8wkYKGN8HqAyDtbqdLOxLjcaiAiSKzektfAXn6nGNfDeygcFr/WzMfI0on/43ByuwxmSrjwYc4M8SCR0nkDAi0XwXNnFp3vSp0gJQd+lJtkSHO2KR7gUyNDZOPVduljJGbdLJUK6UcUjrlAd6NrTNqpu5P7hcYRaNzjoJ0KeIx5k9KmMCdcfQBia/zSHUbwZiecFsyjxqtIU0C3TDaX1OM4siJVDpgrXi+ocY86hiiYE79ygJf2IA==-MIIETDCCAjSgAwIBAgIBDTANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDDA1KZXRQcm9maWxlIENBMB4XDTIwMTAxOTA5MDU1M1oXDTIyMTAyMTA5MDU1M1owHzEdMBsGA1UEAwwUcHJvZDJ5LWZyb20tMjAyMDEwMTkwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCUlaUFc1wf+CfY9wzFWEL2euKQ5nswqb57V8QZG7d7RoR6rwYUIXseTOAFq210oMEe++LCjzKDuqwDfsyhgDNTgZBPAaC4vUU2oy+XR+Fq8nBixWIsH668HeOnRK6RRhsr0rJzRB95aZ3EAPzBuQ2qPaNGm17pAX0Rd6MPRgjp75IWwI9eA6aMEdPQEVN7uyOtM5zSsjoj79Lbu1fjShOnQZuJcsV8tqnayeFkNzv2LTOlofU/Tbx502Ro073gGjoeRzNvrynAP03pL486P3KCAyiNPhDs2z8/COMrxRlZW5mfzo0xsK0dQGNH3UoG/9RVwHG4eS8LFpMTR9oetHZBAgMBAAGjgZkwgZYwCQYDVR0TBAIwADAdBgNVHQ4EFgQUJNoRIpb1hUHAk0foMSNM9MCEAv8wSAYDVR0jBEEwP4AUo562SGdCEjZBvW3gubSgUouX8bOhHKQaMBgxFjAUBgNVBAMMDUpldFByb2ZpbGUgQ0GCCQDSbLGDsoN54TATBgNVHSUEDDAKBggrBgEFBQcDATALBgNVHQ8EBAMCBaAwDQYJKoZIhvcNAQELBQADggIBABKaDfYJk51mtYwUFK8xqhiZaYPd30TlmCmSAaGJ0eBpvkVeqA2jGYhAQRqFiAlFC63JKvWvRZO1iRuWCEfUMkdqQ9VQPXziE/BlsOIgrL6RlJfuFcEZ8TK3syIfIGQZNCxYhLLUuet2HE6LJYPQ5c0jH4kDooRpcVZ4rBxNwddpctUO2te9UU5/FjhioZQsPvd92qOTsV+8Cyl2fvNhNKD1Uu9ff5AkVIQn4JU23ozdB/R5oUlebwaTE6WZNBs+TA/qPj+5/we9NH71WRB0hqUoLI2AKKyiPw++FtN4Su1vsdDlrAzDj9ILjpjJKA1ImuVcG329/WTYIKysZ1CWK3zATg9BeCUPAV1pQy8ToXOq+RSYen6winZ2OO93eyHv2Iw5kbn1dqfBw1BuTE29V2FJKicJSu8iEOpfoafwJISXmz1wnnWL3V/0NxTulfWsXugOoLfv0ZIBP1xH9kmf22jjQ2JiHhQZP7ZDsreRrOeIQ/c4yR8IQvMLfC0WKQqrHu5ZzXTH4NO3CwGWSlTY74kE91zXB5mwWAx1jig+UXYc2w4RkVhy0//lOmVya/PEepuuTTI4+UJwC7qbVlh5zfhj8oTNUXgN0AOc+Q0/WFPl1aw5VV/VrO8FCoB15lFVlpKaQ1Yh+DVU8ke+rt9Th0BCHXe0uZOEmH0nOnH/0onD
+package ga;
+
+import com.alibaba.fastjson.JSONObject;
+import com.hikvision.artemis.sdk.ArtemisHttpUtil;
+import com.hikvision.artemis.sdk.config.ArtemisConfig;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * @author Create by zqz since 2026/1/15 17:51
+ */
+public class GetCameraPreviewURL  {
+
+    public static String GetCameraPreviewURL() {
+        ArtemisConfig config = new ArtemisConfig();
+        /**
+         * STEP1：设置平台参数，根据实际情况,设置host appkey appsecret 三个参数.
+         */
+        config.setHost("10.78.170.139"); // 代理API网关nginx服务器ip端口
+        config.setAppKey("23278727");  // 秘钥appkey
+        config.setAppSecret("0xpDNNwO4IjWvipbmyc6");// 秘钥appSecret
+
+//        config.setHost("10.31.196.252"); // 代理API网关nginx服务器ip端口
+//        config.setAppKey("admin");  // 秘钥appkey
+//        config.setAppSecret("GYssYGYB3!!245");// 秘钥appSecret
+
+        /**
+         * STEP2：设置OpenAPI接口的上下文
+         */
+        final String ARTEMIS_PATH = "/artemis";
+
+        /**
+         * STEP3：设置接口的URI地址
+         */
+//        final String previewURLsApi = ARTEMIS_PATH +"/api/resource/v2/camera/search";  //根据条件查询目录下有权限的监控点列表
+//        final String previewURLsApi = ARTEMIS_PATH +"/api/resource/v1/cameras";  //获取监控点列表接口可用来全量同步监控点信息，返回结果分页展示。
+//        final String previewURLsApi = ARTEMIS_PATH +"/api/video/v2/cameras/playbackURLs";
+        final String previewURLsApi = ARTEMIS_PATH +"/api/video/v2/cameras/previewURLs";
+        Map<String, String> path = new HashMap<String, String>(2) {
+            {
+                put("https://", previewURLsApi);//根据现场环境部署确认是http还是https
+            }
+        };
+
+        /**
+         * STEP4：设置参数提交方式
+         */
+        String contentType = "application/json";
+
+        /**
+         * STEP5：组装请求参数
+         */
+        JSONObject jsonBody = new JSONObject();
+//        jsonBody.put("pageNo", "1");
+//        jsonBody.put("pageSize", "100");
+//        jsonBody.put("name", "海洋石油");
+        jsonBody.put("cameraIndexCode", "9d41b7089f004d0a933a104b687175e3");
+        jsonBody.put("streamType", 1);
+//        jsonBody.put("protocol", "httpflv");
+//        jsonBody.put("protocol", "hls");
+        jsonBody.put("protocol", "hik");
+//        jsonBody.put("expand", "transcode=1&resolution=720P&bitrate=256&framerate=24&videotype=h265&systemformat=rtp&audiotype=G711U&samples=8000&audiobitrate=64000&bitspersample=16");
+        String body = jsonBody.toJSONString();
+
+        /**
+         * STEP6：调用接口
+         */
+        String result = null;// post请求application/json类型参数
+        try {
+            result = ArtemisHttpUtil.doPostStringArtemis(config,path, body, null, null, contentType, null);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return result;
+    }
+
+
+    public static void main(String[] args) {
+        String result = GetCameraPreviewURL();
+        System.out.println("result结果: " + result);
+    }
+}
+
