@@ -1,4 +1,4 @@
-Sub ExtractVisioObjects_ManualCopy()
+Sub ExtractVisioObjects_ManualCopy_Fixed()
     Dim doc As Document
     Dim ilShape As InlineShape
     Dim shp As Shape
@@ -11,6 +11,7 @@ Sub ExtractVisioObjects_ManualCopy()
     Dim shapeType As String ' 'inline' or 'floating'
     Dim allShapes As Collection ' 存储所有 Visio 对象及其类型
     Dim response As VbMsgBoxResult
+    Dim cmdSet As Object ' 存储 CommandSet 对象
     
     ' 初始化
     Set doc = ActiveDocument
@@ -19,19 +20,22 @@ Sub ExtractVisioObjects_ManualCopy()
     ' 启动 Visio
     On Error Resume Next
     Set visApp = GetObject(, "Visio.Application")
-    If Err.Number <> 0 Then
+    If Err.Number <> 0 Or visApp Is Nothing Then
         Set visApp = CreateObject("Visio.Application")
+        If visApp Is Nothing Then
+            MsgBox "无法启动 Visio。请确认 Visio 已安装。", vbCritical
+            Exit Sub
+        End If
         visApp.Visible = True
     End If
     On Error GoTo 0
     
-    If visApp Is Nothing Then
-        MsgBox "无法启动 Visio。", vbCritical
-        Exit Sub
-    End If
-    
     ' 创建目标文档
     Set visDoc = visApp.Documents.Add("")
+    If visDoc Is Nothing Then
+        MsgBox "无法创建 Visio 文档。", vbCritical
+        Exit Sub
+    End If
     
     ' 收集所有 Visio 对象
     For Each ilShape In doc.InlineShapes
@@ -82,14 +86,24 @@ Sub ExtractVisioObjects_ManualCopy()
         
         ' 在 Visio 中新建页面并粘贴
         Set visPage = visDoc.Pages.Add()
-        visPage.Name = objName
-        
-        visPage.Paste ' 尝试粘贴剪贴板内容
-        
-        ' 调整页面大小
-        On Error Resume Next
-        visApp.CommandSet.CmdFitToContents
-        On Error GoTo 0
+        If Not visPage Is Nothing Then
+            visPage.Name = objName
+            visPage.Paste ' 尝试粘贴剪贴板内容
+            
+            ' 尝试调整页面大小，增加保护
+            On Error Resume Next
+            Set cmdSet = visApp.CommandSet ' 获取 CommandSet
+            If Not cmdSet Is Nothing Then
+                cmdSet.CmdFitToContents ' 调用适应绘图命令
+            Else
+                ' 如果 CmdFitToContents 不可用，则尝试其他方式或忽略
+                ' 例如，可以通过页面属性手动计算边界并设置页面大小，但这很复杂
+                ' 这里我们忽略此步骤
+            End If
+            On Error GoTo 0
+        Else
+            MsgBox "无法创建新页面，跳过对象 " & i & "。", vbExclamation
+        End If
     Next item
     
     Application.ScreenUpdating = True
