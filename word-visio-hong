@@ -1,61 +1,52 @@
-Sub ExtractVisioObjectsToPages_Safe()
+Sub ExtractVisioObjectsToPages()
     Dim doc As Document
     Dim ilShape As InlineShape
     Dim shp As Shape
-    Dim visApp As Object
-    Dim visDoc As Object
-    Dim visPage As Object
+    Dim visApp As Visio.Application
+    Dim visDoc As Visio.Document
+    Dim visPage As Visio.Page
     Dim i As Integer
     Dim objName As String
-    Dim retryCount As Integer
-    Dim copySuccess As Boolean
     
+    ' 获取当前 Word 文档
     Set doc = ActiveDocument
     
-    ' 1. 启动或连接 Visio
+    ' 尝试获取正在运行的 Visio 实例，如果没有则新建一个
     On Error Resume Next
     Set visApp = GetObject(, "Visio.Application")
     If Err.Number <> 0 Then
-        Set visApp = CreateObject("Visio.Application")
+        Set visApp = New Visio.Application
         visApp.Visible = True
     End If
     On Error GoTo 0
     
-    If visApp Is Nothing Then
-        MsgBox "无法启动 Visio，请确认已安装 Visio。", vbCritical
-        Exit Sub
-    End If
-    
-    ' 2. 创建新文档
+    ' 创建一个新的 Visio 文档用于存放提取的内容
     Set visDoc = visApp.Documents.Add("")
     i = 0
     
-    ' 关闭屏幕更新以提高速度并减少闪烁
     Application.ScreenUpdating = False
-    visApp.Visible = False ' 先在后台处理，完成后显示，防止界面闪烁干扰剪贴板
     
     ' --- 处理嵌入式形状 (InlineShapes) ---
     For Each ilShape In doc.InlineShapes
         If ilShape.Type = wdInlineShapeEmbeddedOLEObject Then
+            ' 检查是否为 Visio 对象
             If InStr(ilShape.OLEFormat.ProgID, "Visio") > 0 Then
                 i = i + 1
                 objName = "Page_" & i
                 
+                ' 在 Visio 中新建一页
                 Set visPage = visDoc.Pages.Add()
                 visPage.Name = objName
                 
-                ' 【关键修改】带重试机制的复制
-                copySuccess = SafeCopy(ilShape)
+                ' 复制 Word 中的对象
+                ilShape.Select
+                Selection.Copy
                 
-                If copySuccess Then
-                    visPage.Paste
-                    ' 自动调整页面大小
-                    On Error Resume Next
-                    visApp.CommandSet.CmdFitToContents
-                    On Error GoTo 0
-                Else
-                    MsgBox "无法复制第 " & i & " 个对象，跳过。", vbExclamation
-                End If
+                ' 粘贴到 Visio 新页面
+                visPage.Paste
+                
+                ' 可选：调整页面大小以适应内容 (自动调整)
+                visPage.PageSheet.Row11(visioFitToContents) = True
             End If
         End If
     Next ilShape
@@ -70,96 +61,26 @@ Sub ExtractVisioObjectsToPages_Safe()
                 Set visPage = visDoc.Pages.Add()
                 visPage.Name = objName
                 
-                ' 【关键修改】带重试机制的复制
-                copySuccess = SafeCopyShape(shp)
+                shp.Select
+                Selection.Copy
+                visPage.Paste
                 
-                If copySuccess Then
-                    visPage.Paste
-                    On Error Resume Next
-                    visApp.CommandSet.CmdFitToContents
-                    On Error GoTo 0
-                Else
-                    MsgBox "无法复制第 " & i & " 个对象，跳过。", vbExclamation
-                End If
+                visPage.PageSheet.Row11(visioFitToContents) = True
             End If
         End If
     Next shp
     
-    ' 恢复显示
-    visApp.Visible = True
     Application.ScreenUpdating = True
     
     If i = 0 Then
-        MsgBox "未找到 Visio 对象。", vbExclamation
+        MsgBox "未在文档中找到任何 Visio 对象。", vbExclamation
     Else
-        MsgBox "成功提取 " & i & " 个对象！", vbInformation
+        MsgBox "成功提取 " & i & " 个 Visio 对象到 Visio 的新页面中！", vbInformation
     End If
+    
+    ' 清理剪贴板
+    EmptyClipboard
 End Sub
 
-' --- 辅助函数：安全复制 InlineShape (带重试) ---
-Function SafeCopy(ilShape As InlineShape) As Boolean
-    Dim retry As Integer
-    Dim maxRetries As Integer
-    Dim waitTime As Long
-    
-    maxRetries = 5
-    retry = 0
-    SafeCopy = False
-    
-    Do While retry < maxRetries
-        On Error Resume Next
-        ilShape.Select
-        Selection.Copy
-        If Err.Number = 0 Then
-            SafeCopy = True
-            Exit Do
-        Else
-            ' 如果报错（通常是剪贴板错误），等待后重试
-            On Error GoTo 0
-            retry = retry + 1
-            waitTime = 300 ' 等待约 0.3 秒
-            Dim t As Single
-            t = Timer
-            Do While Timer < t + (waitTime / 60) Mod 60 + IIf(t > Timer, 60, 0) * 60
-                DoEvents
-            Loop
-            ' 简单的延时替代方案，避免复杂的计时器逻辑错误
-            Dim startTime As Single
-            startTime = Timer
-            Do While Timer < startTime + 0.5
-                DoEvents
-            Loop
-        End If
-        On Error GoTo 0
-    Loop
-End Function
-
-' --- 辅助函数：安全复制 Shape (带重试) ---
-Function SafeCopyShape(shp As Shape) As Boolean
-    Dim retry As Integer
-    Dim maxRetries As Integer
-    
-    maxRetries = 5
-    retry = 0
-    SafeCopyShape = False
-    
-    Do While retry < maxRetries
-        On Error Resume Next
-        shp.Select
-        Selection.Copy
-        If Err.Number = 0 Then
-            SafeCopyShape = True
-            Exit Do
-        Else
-            On Error GoTo 0
-            retry = retry + 1
-            ' 延时 0.5 秒
-            Dim startTime As Single
-            startTime = Timer
-            Do While Timer < startTime + 0.5
-                DoEvents
-            Loop
-        End If
-        On Error GoTo 0
-    Loop
-End Function
+' 辅助函数声明 (用于自动调整页面)
+Declare Function EmptyClipboard Lib "user32" () As Long
