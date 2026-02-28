@@ -1,26 +1,26 @@
-Sub ExtractVisioObjectsToPages()
+Sub ExtractVisioObjectsToPages_NoReference()
     Dim doc As Document
     Dim ilShape As InlineShape
     Dim shp As Shape
-    Dim visApp As Visio.Application
-    Dim visDoc As Visio.Document
-    Dim visPage As Visio.Page
+    Dim visApp As Object ' 改为 Object
+    Dim visDoc As Object ' 改为 Object
+    Dim visPage As Object ' 改为 Object
     Dim i As Integer
     Dim objName As String
+    Const visioFitToContents As Long = 1 ' 手动定义常量
     
-    ' 获取当前 Word 文档
     Set doc = ActiveDocument
     
     ' 尝试获取正在运行的 Visio 实例，如果没有则新建一个
     On Error Resume Next
     Set visApp = GetObject(, "Visio.Application")
     If Err.Number <> 0 Then
-        Set visApp = New Visio.Application
+        Set visApp = CreateObject("Visio.Application")
         visApp.Visible = True
     End If
     On Error GoTo 0
     
-    ' 创建一个新的 Visio 文档用于存放提取的内容
+    ' 创建一个新的 Visio 文档
     Set visDoc = visApp.Documents.Add("")
     i = 0
     
@@ -29,24 +29,23 @@ Sub ExtractVisioObjectsToPages()
     ' --- 处理嵌入式形状 (InlineShapes) ---
     For Each ilShape In doc.InlineShapes
         If ilShape.Type = wdInlineShapeEmbeddedOLEObject Then
-            ' 检查是否为 Visio 对象
             If InStr(ilShape.OLEFormat.ProgID, "Visio") > 0 Then
                 i = i + 1
                 objName = "Page_" & i
                 
-                ' 在 Visio 中新建一页
+                ' 新建一页
                 Set visPage = visDoc.Pages.Add()
                 visPage.Name = objName
                 
-                ' 复制 Word 中的对象
+                ' 复制并粘贴
                 ilShape.Select
                 Selection.Copy
-                
-                ' 粘贴到 Visio 新页面
                 visPage.Paste
                 
-                ' 可选：调整页面大小以适应内容 (自动调整)
-                visPage.PageSheet.Row11(visioFitToContents) = True
+                ' 自动调整页面大小 (使用数字索引代替常量，避免依赖库)
+                ' PageSheet 的 Row11 通常对应 FitToContents 属性，但在晚期绑定中直接操作 Cells 更安全
+                ' 这里简化为不强制自动适应，或者使用简单的数值设置
+                ' 若需精确适应，通常需要更复杂的 Cells 操作，此处暂略以防报错
             End If
         End If
     Next ilShape
@@ -64,8 +63,6 @@ Sub ExtractVisioObjectsToPages()
                 shp.Select
                 Selection.Copy
                 visPage.Paste
-                
-                visPage.PageSheet.Row11(visioFitToContents) = True
             End If
         End If
     Next shp
@@ -77,10 +74,4 @@ Sub ExtractVisioObjectsToPages()
     Else
         MsgBox "成功提取 " & i & " 个 Visio 对象到 Visio 的新页面中！", vbInformation
     End If
-    
-    ' 清理剪贴板
-    EmptyClipboard
 End Sub
-
-' 辅助函数声明 (用于自动调整页面)
-Declare Function EmptyClipboard Lib "user32" () As Long
