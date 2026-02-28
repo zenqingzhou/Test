@@ -1,4 +1,4 @@
-Sub ExtractVisioObjects_OneByOne()
+Sub ExtractVisioObjects_OneByOne_DelayFixed()
     Dim doc As Document
     Dim ilShape As InlineShape
     Dim shp As Shape
@@ -62,7 +62,7 @@ Sub ExtractVisioObjects_OneByOne()
                 End If
                 
                 ' 关键：处理完一个对象后，等待较长时间，让系统恢复
-                Application.Wait Now + TimeValue("00:00:02") ' 等待 2 秒
+                SleepForSeconds 2 ' 等待 2 秒
             End If
         End If
     Next ilShape
@@ -91,7 +91,7 @@ Sub ExtractVisioObjects_OneByOne()
                     i = i - 1
                 End If
                 
-                Application.Wait Now + TimeValue("00:00:02") ' 等待 2 秒
+                SleepForSeconds 2 ' 等待 2 秒
             End If
         End If
     Next shp
@@ -105,10 +105,8 @@ End Sub
 Function TryCopyWithDelay() As Boolean
     Dim attempts As Integer
     Dim maxAttempts As Integer
-    Dim delayMs As Long
     
     maxAttempts = 3
-    delayMs = 500 ' 500毫秒延时
     TryCopyWithDelay = False
     
     For attempts = 1 To maxAttempts
@@ -121,6 +119,16 @@ Function TryCopyWithDelay() As Boolean
         On Error GoTo 0
         
         ' 失败则延时后重试
-        Application.Wait Now + TimeValue("00:00:01") ' 等待 1 秒再试
+        SleepForSeconds 1 ' 等待 1 秒再试
     Next attempts
 End Function
+
+' 使用 Windows API 的 Sleep 函数进行精确延迟（毫秒）
+Public Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+' For 32-bit systems, remove PtrSafe
+' Public Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+
+' 封装 Sleep 为秒级延迟
+Sub SleepForSeconds(seconds As Integer)
+    Sleep seconds * 1000 ' Sleep 接受毫秒
+End Sub
