@@ -1,3 +1,9 @@
+' --- 必须放在模块最顶部 ---
+Public Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+' For 32-bit systems, remove PtrSafe
+' Public Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+' --- 顶部声明结束 ---
+
 Sub ExtractVisioObjects_OneByOne_DelayFixed()
     Dim doc As Document
     Dim ilShape As InlineShape
@@ -122,11 +128,6 @@ Function TryCopyWithDelay() As Boolean
         SleepForSeconds 1 ' 等待 1 秒再试
     Next attempts
 End Function
-
-' 使用 Windows API 的 Sleep 函数进行精确延迟（毫秒）
-Public Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
-' For 32-bit systems, remove PtrSafe
-' Public Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 
 ' 封装 Sleep 为秒级延迟
 Sub SleepForSeconds(seconds As Integer)
