@@ -1,28 +1,22 @@
-Sub ExtractVisioObjects_ExportImport()
+Sub ExtractVisioObjects_ManualCopy()
     Dim doc As Document
     Dim ilShape As InlineShape
     Dim shp As Shape
-    Dim visApp As Object ' 主 Visio 实例
-    Dim visDoc As Object ' 主 Visio 文档
-    Dim visPage As Object ' 新建的页面
+    Dim visApp As Object
+    Dim visDoc As Object
+    Dim visPage As Object
     Dim i As Integer
     Dim objName As String
-    Dim tempPath As String
-    Dim tempFile As String
-    Dim fso As Object
-    Dim activeWindow As Object
-    Dim editDoc As Object ' 被双击打开的临时编辑文档
-    Dim editPage As Object ' 临时编辑文档的页面
-    Dim importedShapes As Object
+    Dim currentShape As Object ' 用于存储当前处理的形状
+    Dim shapeType As String ' 'inline' or 'floating'
+    Dim allShapes As Collection ' 存储所有 Visio 对象及其类型
+    Dim response As VbMsgBoxResult
     
     ' 初始化
     Set doc = ActiveDocument
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    tempPath = fso.GetSpecialFolder(2) & "\VisioExtractTemp\" ' 临时文件夹
+    Set allShapes = New Collection ' 创建集合存储
     
-    If Not fso.FolderExists(tempPath) Then fso.CreateFolder tempPath
-    
-    ' 启动主 Visio 实例
+    ' 启动 Visio
     On Error Resume Next
     Set visApp = GetObject(, "Visio.Application")
     If Err.Number <> 0 Then
@@ -38,113 +32,69 @@ Sub ExtractVisioObjects_ExportImport()
     
     ' 创建目标文档
     Set visDoc = visApp.Documents.Add("")
-    i = 0
     
-    Application.ScreenUpdating = False
-    
-    ' --- 处理 InlineShapes ---
+    ' 收集所有 Visio 对象
     For Each ilShape In doc.InlineShapes
         If ilShape.Type = wdInlineShapeEmbeddedOLEObject Then
             If InStr(ilShape.OLEFormat.ProgID, "Visio") > 0 Then
-                i = i + 1
-                objName = "Page_" & i
-                tempFile = tempPath & "temp_export_" & i & ".vsdx"
-                
-                ' 1. 双击打开嵌入对象（这会启动或激活一个编辑窗口）
-                ilShape.OLEFormat.DoVerb (0) ' 0 通常是 "Open" verb
-                
-                ' 2. 获取这个新打开的编辑文档
-                On Error Resume Next
-                Set activeWindow = visApp.ActiveWindow ' 这应该是编辑窗口
-                Set editDoc = activeWindow.Document
-                On Error GoTo 0
-                
-                If Not editDoc Is Nothing Then
-                    ' 3. 获取编辑文档的页面
-                    If editDoc.Pages.Count > 0 Then
-                        Set editPage = editDoc.Pages(1)
-                        
-                        ' 4. 导出页面内容到临时文件
-                        editPage.Export tempFile
-                        
-                        ' 5. 在主文档中新建页面
-                        Set visPage = visDoc.Pages.Add()
-                        visPage.Name = objName
-                        
-                        ' 6. 导入临时文件内容到新页面
-                        Set importedShapes = visPage.Import(tempFile)
-                        
-                        ' 7. 调整页面大小
-                        On Error Resume Next
-                        visApp.CommandSet.CmdFitToContents
-                        On Error GoTo 0
-                    End If
-                    
-                    ' 8. 关闭临时编辑文档（不保存）
-                    editDoc.Close False
-                End If
-                
-                ' 9. 删除临时文件
-                If fso.FileExists(tempFile) Then fso.DeleteFile tempFile
-                
-                ' 10. 延时，让 Visio 状态稳定
-                SleepForSeconds 1
+                allShapes.Add Array(ilShape, "inline")
             End If
         End If
     Next ilShape
     
-    ' --- 处理 Shapes (浮动对象) ---
     For Each shp In doc.Shapes
         If shp.Type = msoEmbeddedOLEObject Then
             If InStr(shp.OLEFormat.ProgID, "Visio") > 0 Then
-                i = i + 1
-                objName = "Page_" & i
-                tempFile = tempPath & "temp_export_" & i & ".vsdx"
-                
-                shp.OLEFormat.DoVerb (0)
-                
-                On Error Resume Next
-                Set activeWindow = visApp.ActiveWindow
-                Set editDoc = activeWindow.Document
-                On Error GoTo 0
-                
-                If Not editDoc Is Nothing Then
-                    If editDoc.Pages.Count > 0 Then
-                        Set editPage = editDoc.Pages(1)
-                        editPage.Export tempFile
-                        
-                        Set visPage = visDoc.Pages.Add()
-                        visPage.Name = objName
-                        
-                        Set importedShapes = visPage.Import(tempFile)
-                        
-                        On Error Resume Next
-                        visApp.CommandSet.CmdFitToContents
-                        On Error GoTo 0
-                    End If
-                    editDoc.Close False
-                End If
-                
-                If fso.FileExists(tempFile) Then fso.DeleteFile tempFile
-                SleepForSeconds 1
+                allShapes.Add Array(shp, "floating")
             End If
         End If
     Next shp
     
-    ' 清理临时文件夹
-    On Error Resume Next
-    If fso.FolderExists(tempPath) Then fso.DeleteFolder tempPath
-    On Error GoTo 0
+    If allShapes.Count = 0 Then
+        MsgBox "未找到任何 Visio 对象。", vbExclamation
+        Exit Sub
+    End If
+    
+    i = 0
+    Application.ScreenUpdating = False
+    
+    ' 遍历收集到的对象
+    For Each item In allShapes
+        currentShape = item(0)
+        shapeType = item(1)
+        i = i + 1
+        objName = "Page_" & i
+        
+        ' 选中当前对象，方便用户复制
+        If shapeType = "inline" Then
+            currentShape.Select
+        ElseIf shapeType = "floating" Then
+            currentShape.Select
+        End If
+        
+        ' 弹出提示，让用户手动复制
+        response = MsgBox("请手动复制当前选中的 Visio 对象 (对象 " & i & "/" & allShapes.Count & ")。" & vbCrLf & _
+                         "选中后按 Ctrl+C，然后点击 '确定' 继续。", vbOKCancel, "手动复制 " & i)
+        
+        If response = vbCancel Then
+            Exit For ' 用户取消
+        End If
+        
+        ' 在 Visio 中新建页面并粘贴
+        Set visPage = visDoc.Pages.Add()
+        visPage.Name = objName
+        
+        visPage.Paste ' 尝试粘贴剪贴板内容
+        
+        ' 调整页面大小
+        On Error Resume Next
+        visApp.CommandSet.CmdFitToContents
+        On Error GoTo 0
+    Next item
     
     Application.ScreenUpdating = True
     
-    MsgBox "完成！成功提取 " & i & " 个对象。", vbInformation
-End Sub
-
-' 使用 Windows API 的 Sleep 函数进行精确延迟（毫秒）
-Public Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
-
-' 封装 Sleep 为秒级延迟
-Sub SleepForSeconds(seconds As Integer)
-    Sleep seconds * 1000 ' Sleep 接受毫秒
+    If i > 0 Then
+        MsgBox "手动提取完成！共处理 " & i & " 个对象。", vbInformation
+    End If
 End Sub
