@@ -1,24 +1,28 @@
-' --- 必须放在模块最顶部 ---
-Public Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
-' For 32-bit systems, remove PtrSafe
-' Public Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
-' --- 顶部声明结束 ---
-
-Sub ExtractVisioObjects_OneByOne_DelayFixed()
+Sub ExtractVisioObjects_ExportImport()
     Dim doc As Document
     Dim ilShape As InlineShape
     Dim shp As Shape
-    Dim visApp As Object
-    Dim visDoc As Object
-    Dim visPage As Object
+    Dim visApp As Object ' 主 Visio 实例
+    Dim visDoc As Object ' 主 Visio 文档
+    Dim visPage As Object ' 新建的页面
     Dim i As Integer
     Dim objName As String
-    Dim success As Boolean
+    Dim tempPath As String
+    Dim tempFile As String
+    Dim fso As Object
+    Dim activeWindow As Object
+    Dim editDoc As Object ' 被双击打开的临时编辑文档
+    Dim editPage As Object ' 临时编辑文档的页面
+    Dim importedShapes As Object
     
     ' 初始化
     Set doc = ActiveDocument
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    tempPath = fso.GetSpecialFolder(2) & "\VisioExtractTemp\" ' 临时文件夹
     
-    ' 启动 Visio
+    If Not fso.FolderExists(tempPath) Then fso.CreateFolder tempPath
+    
+    ' 启动主 Visio 实例
     On Error Resume Next
     Set visApp = GetObject(, "Visio.Application")
     If Err.Number <> 0 Then
@@ -44,31 +48,47 @@ Sub ExtractVisioObjects_OneByOne_DelayFixed()
             If InStr(ilShape.OLEFormat.ProgID, "Visio") > 0 Then
                 i = i + 1
                 objName = "Page_" & i
+                tempFile = tempPath & "temp_export_" & i & ".vsdx"
                 
-                ' 新建页面
-                Set visPage = visDoc.Pages.Add()
-                visPage.Name = objName
+                ' 1. 双击打开嵌入对象（这会启动或激活一个编辑窗口）
+                ilShape.OLEFormat.DoVerb (0) ' 0 通常是 "Open" verb
                 
-                ' 选中并复制对象
-                ilShape.Select
-                success = TryCopyWithDelay()
+                ' 2. 获取这个新打开的编辑文档
+                On Error Resume Next
+                Set activeWindow = visApp.ActiveWindow ' 这应该是编辑窗口
+                Set editDoc = activeWindow.Document
+                On Error GoTo 0
                 
-                If success Then
-                    ' 粘贴到新页面
-                    visPage.Paste
-                    ' 调整页面大小
-                    On Error Resume Next
-                    visApp.CommandSet.CmdFitToContents
-                    On Error GoTo 0
-                Else
-                    MsgBox "复制第 " & i & " 个对象失败，跳过。", vbExclamation
-                    ' 删除空页面
-                    visPage.Delete
-                    i = i - 1
+                If Not editDoc Is Nothing Then
+                    ' 3. 获取编辑文档的页面
+                    If editDoc.Pages.Count > 0 Then
+                        Set editPage = editDoc.Pages(1)
+                        
+                        ' 4. 导出页面内容到临时文件
+                        editPage.Export tempFile
+                        
+                        ' 5. 在主文档中新建页面
+                        Set visPage = visDoc.Pages.Add()
+                        visPage.Name = objName
+                        
+                        ' 6. 导入临时文件内容到新页面
+                        Set importedShapes = visPage.Import(tempFile)
+                        
+                        ' 7. 调整页面大小
+                        On Error Resume Next
+                        visApp.CommandSet.CmdFitToContents
+                        On Error GoTo 0
+                    End If
+                    
+                    ' 8. 关闭临时编辑文档（不保存）
+                    editDoc.Close False
                 End If
                 
-                ' 关键：处理完一个对象后，等待较长时间，让系统恢复
-                SleepForSeconds 2 ' 等待 2 秒
+                ' 9. 删除临时文件
+                If fso.FileExists(tempFile) Then fso.DeleteFile tempFile
+                
+                ' 10. 延时，让 Visio 状态稳定
+                SleepForSeconds 1
             End If
         End If
     Next ilShape
@@ -79,55 +99,50 @@ Sub ExtractVisioObjects_OneByOne_DelayFixed()
             If InStr(shp.OLEFormat.ProgID, "Visio") > 0 Then
                 i = i + 1
                 objName = "Page_" & i
+                tempFile = tempPath & "temp_export_" & i & ".vsdx"
                 
-                Set visPage = visDoc.Pages.Add()
-                visPage.Name = objName
+                shp.OLEFormat.DoVerb (0)
                 
-                shp.Select
-                success = TryCopyWithDelay()
+                On Error Resume Next
+                Set activeWindow = visApp.ActiveWindow
+                Set editDoc = activeWindow.Document
+                On Error GoTo 0
                 
-                If success Then
-                    visPage.Paste
-                    On Error Resume Next
-                    visApp.CommandSet.CmdFitToContents
-                    On Error GoTo 0
-                Else
-                    MsgBox "复制第 " & i & " 个对象失败，跳过。", vbExclamation
-                    visPage.Delete
-                    i = i - 1
+                If Not editDoc Is Nothing Then
+                    If editDoc.Pages.Count > 0 Then
+                        Set editPage = editDoc.Pages(1)
+                        editPage.Export tempFile
+                        
+                        Set visPage = visDoc.Pages.Add()
+                        visPage.Name = objName
+                        
+                        Set importedShapes = visPage.Import(tempFile)
+                        
+                        On Error Resume Next
+                        visApp.CommandSet.CmdFitToContents
+                        On Error GoTo 0
+                    End If
+                    editDoc.Close False
                 End If
                 
-                SleepForSeconds 2 ' 等待 2 秒
+                If fso.FileExists(tempFile) Then fso.DeleteFile tempFile
+                SleepForSeconds 1
             End If
         End If
     Next shp
+    
+    ' 清理临时文件夹
+    On Error Resume Next
+    If fso.FolderExists(tempPath) Then fso.DeleteFolder tempPath
+    On Error GoTo 0
     
     Application.ScreenUpdating = True
     
     MsgBox "完成！成功提取 " & i & " 个对象。", vbInformation
 End Sub
 
-' 辅助函数：带延时的复制操作
-Function TryCopyWithDelay() As Boolean
-    Dim attempts As Integer
-    Dim maxAttempts As Integer
-    
-    maxAttempts = 3
-    TryCopyWithDelay = False
-    
-    For attempts = 1 To maxAttempts
-        On Error Resume Next
-        Selection.Copy
-        If Err.Number = 0 Then
-            TryCopyWithDelay = True
-            Exit For ' 成功则退出循环
-        End If
-        On Error GoTo 0
-        
-        ' 失败则延时后重试
-        SleepForSeconds 1 ' 等待 1 秒再试
-    Next attempts
-End Function
+' 使用 Windows API 的 Sleep 函数进行精确延迟（毫秒）
+Public Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 
 ' 封装 Sleep 为秒级延迟
 Sub SleepForSeconds(seconds As Integer)
