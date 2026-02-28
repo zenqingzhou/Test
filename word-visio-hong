@@ -1,0 +1,86 @@
+Sub ExtractVisioObjectsToPages()
+    Dim doc As Document
+    Dim ilShape As InlineShape
+    Dim shp As Shape
+    Dim visApp As Visio.Application
+    Dim visDoc As Visio.Document
+    Dim visPage As Visio.Page
+    Dim i As Integer
+    Dim objName As String
+    
+    ' 获取当前 Word 文档
+    Set doc = ActiveDocument
+    
+    ' 尝试获取正在运行的 Visio 实例，如果没有则新建一个
+    On Error Resume Next
+    Set visApp = GetObject(, "Visio.Application")
+    If Err.Number <> 0 Then
+        Set visApp = New Visio.Application
+        visApp.Visible = True
+    End If
+    On Error GoTo 0
+    
+    ' 创建一个新的 Visio 文档用于存放提取的内容
+    Set visDoc = visApp.Documents.Add("")
+    i = 0
+    
+    Application.ScreenUpdating = False
+    
+    ' --- 处理嵌入式形状 (InlineShapes) ---
+    For Each ilShape In doc.InlineShapes
+        If ilShape.Type = wdInlineShapeEmbeddedOLEObject Then
+            ' 检查是否为 Visio 对象
+            If InStr(ilShape.OLEFormat.ProgID, "Visio") > 0 Then
+                i = i + 1
+                objName = "Page_" & i
+                
+                ' 在 Visio 中新建一页
+                Set visPage = visDoc.Pages.Add()
+                visPage.Name = objName
+                
+                ' 复制 Word 中的对象
+                ilShape.Select
+                Selection.Copy
+                
+                ' 粘贴到 Visio 新页面
+                visPage.Paste
+                
+                ' 可选：调整页面大小以适应内容 (自动调整)
+                visPage.PageSheet.Row11(visioFitToContents) = True
+            End If
+        End If
+    Next ilShape
+    
+    ' --- 处理浮动式形状 (Shapes) ---
+    For Each shp In doc.Shapes
+        If shp.Type = msoEmbeddedOLEObject Then
+            If InStr(shp.OLEFormat.ProgID, "Visio") > 0 Then
+                i = i + 1
+                objName = "Page_" & i
+                
+                Set visPage = visDoc.Pages.Add()
+                visPage.Name = objName
+                
+                shp.Select
+                Selection.Copy
+                visPage.Paste
+                
+                visPage.PageSheet.Row11(visioFitToContents) = True
+            End If
+        End If
+    Next shp
+    
+    Application.ScreenUpdating = True
+    
+    If i = 0 Then
+        MsgBox "未在文档中找到任何 Visio 对象。", vbExclamation
+    Else
+        MsgBox "成功提取 " & i & " 个 Visio 对象到 Visio 的新页面中！", vbInformation
+    End If
+    
+    ' 清理剪贴板
+    EmptyClipboard
+End Sub
+
+' 辅助函数声明 (用于自动调整页面)
+Declare Function EmptyClipboard Lib "user32" () As Long
