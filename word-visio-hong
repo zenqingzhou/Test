@@ -1,31 +1,23 @@
-Sub ExtractVisioObjects_Stable()
+Sub ExtractVisioObjects_OneByOne()
     Dim doc As Document
     Dim ilShape As InlineShape
     Dim shp As Shape
     Dim visApp As Object
     Dim visDoc As Object
-    Dim visSrcDoc As Object
     Dim visPage As Object
-    Dim visSrcPage As Object
     Dim i As Integer
-    Dim tempPath As String
-    Dim tempFile As String
     Dim objName As String
-    Dim fso As Object
+    Dim success As Boolean
     
     ' 初始化
     Set doc = ActiveDocument
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    tempPath = fso.GetSpecialFolder(2) & "\VisioExtractTemp\" ' 2 = TemporaryFolder
-    
-    ' 创建临时文件夹
-    If Not fso.FolderExists(tempPath) Then fso.CreateFolder tempPath
     
     ' 启动 Visio
     On Error Resume Next
     Set visApp = GetObject(, "Visio.Application")
-    If Err.Number <> 0 Or visApp Is Nothing Then
+    If Err.Number <> 0 Then
         Set visApp = CreateObject("Visio.Application")
+        visApp.Visible = True
     End If
     On Error GoTo 0
     
@@ -33,8 +25,6 @@ Sub ExtractVisioObjects_Stable()
         MsgBox "无法启动 Visio。", vbCritical
         Exit Sub
     End If
-    
-    visApp.Visible = True ' 保持可见以便观察
     
     ' 创建目标文档
     Set visDoc = visApp.Documents.Add("")
@@ -47,45 +37,34 @@ Sub ExtractVisioObjects_Stable()
         If ilShape.Type = wdInlineShapeEmbeddedOLEObject Then
             If InStr(ilShape.OLEFormat.ProgID, "Visio") > 0 Then
                 i = i + 1
-                tempFile = tempPath & "temp_" & i & ".vsdx"
                 objName = "Page_" & i
                 
-                ' 1. 将 Word 中的对象另存为临时 Visio 文件 (关键步骤：避开剪贴板)
-                On Error Resume Next
-                ilShape.OLEFormat.SaveAs tempFile
-                If Err.Number <> 0 Then
-                    Debug.Print "保存第 " & i & " 个对象失败: " & Err.Description
-                    Err.Clear
-                    On Error GoTo 0
-                    GoTo NextItem
-                End If
-                On Error GoTo 0
+                ' 新建页面
+                Set visPage = visDoc.Pages.Add()
+                visPage.Name = objName
                 
-                ' 2. 用 Visio 打开这个临时文件
-                Set visSrcDoc = visApp.Documents.Open(tempFile)
+                ' 选中并复制对象
+                ilShape.Select
+                success = TryCopyWithDelay()
                 
-                If visSrcDoc.Pages.Count > 0 Then
-                    Set visSrcPage = visSrcDoc.Pages(1)
-                    
-                    ' 3. 在目标文档新建一页
-                    Set visPage = visDoc.Pages.Add()
-                    visPage.Name = objName
-                    
-                    ' 4. 将源页面的所有形状移动到目标页面 (比 Copy/Paste 更稳定)
-                    Call MoveShapes(visSrcPage, visPage)
-                    
-                    ' 5. 调整目标页面大小
+                If success Then
+                    ' 粘贴到新页面
+                    visPage.Paste
+                    ' 调整页面大小
                     On Error Resume Next
                     visApp.CommandSet.CmdFitToContents
                     On Error GoTo 0
+                Else
+                    MsgBox "复制第 " & i & " 个对象失败，跳过。", vbExclamation
+                    ' 删除空页面
+                    visPage.Delete
+                    i = i - 1
                 End If
                 
-                ' 6. 关闭并删除临时文件
-                visSrcDoc.Close False
-                If fso.FileExists(tempFile) Then fso.DeleteFile tempFile
+                ' 关键：处理完一个对象后，等待较长时间，让系统恢复
+                Application.Wait Now + TimeValue("00:00:02") ' 等待 2 秒
             End If
         End If
-NextItem:
     Next ilShape
     
     ' --- 处理 Shapes (浮动对象) ---
@@ -93,82 +72,55 @@ NextItem:
         If shp.Type = msoEmbeddedOLEObject Then
             If InStr(shp.OLEFormat.ProgID, "Visio") > 0 Then
                 i = i + 1
-                tempFile = tempPath & "temp_" & i & ".vsdx"
                 objName = "Page_" & i
                 
-                On Error Resume Next
-                shp.OLEFormat.SaveAs tempFile
-                If Err.Number <> 0 Then
-                    Err.Clear
-                    On Error GoTo 0
-                    GoTo NextShape
-                End If
-                On Error GoTo 0
+                Set visPage = visDoc.Pages.Add()
+                visPage.Name = objName
                 
-                Set visSrcDoc = visApp.Documents.Open(tempFile)
+                shp.Select
+                success = TryCopyWithDelay()
                 
-                If visSrcDoc.Pages.Count > 0 Then
-                    Set visSrcPage = visSrcDoc.Pages(1)
-                    Set visPage = visDoc.Pages.Add()
-                    visPage.Name = objName
-                    Call MoveShapes(visSrcPage, visPage)
+                If success Then
+                    visPage.Paste
                     On Error Resume Next
                     visApp.CommandSet.CmdFitToContents
                     On Error GoTo 0
+                Else
+                    MsgBox "复制第 " & i & " 个对象失败，跳过。", vbExclamation
+                    visPage.Delete
+                    i = i - 1
                 End If
                 
-                visSrcDoc.Close False
-                If fso.FileExists(tempFile) Then fso.DeleteFile tempFile
+                Application.Wait Now + TimeValue("00:00:02") ' 等待 2 秒
             End If
         End If
-NextShape:
     Next shp
     
     Application.ScreenUpdating = True
     
-    ' 清理临时文件夹
-    On Error Resume Next
-    If fso.FolderExists(tempPath) Then fso.DeleteFolder tempPath
-    On Error GoTo 0
-    
     MsgBox "完成！成功提取 " & i & " 个对象。", vbInformation
 End Sub
 
-' 辅助函数：移动形状（实际上是复制几何数据，避免跨文档引用问题）
-Sub MoveShapes(srcPage As Object, dstPage As Object)
-    Dim shp As Object
-    Dim newShp As Object
+' 辅助函数：带延时的复制操作
+Function TryCopyWithDelay() As Boolean
+    Dim attempts As Integer
+    Dim maxAttempts As Integer
+    Dim delayMs As Long
     
-    ' 遍历源页面所有形状
-    For Each shp In srcPage.Shapes
-        ' 复制形状到目标页面
-        ' 使用 Duplicate 方法通常比 Copy/Paste 稳定，因为它在内存中操作
-        Set newShp = shp.Duplicate
-        ' 将复制出的形状移动到目标页
-        newShp.Move dstPage.ID, 0, 0 ' 这里的 Move 语法可能需要调整，Visio VBA 中直接 Drop 或 ChangePage 更好
-        
-        ' 更正：Visio 中跨页移动形状的最佳方式是 ChangePage
+    maxAttempts = 3
+    delayMs = 500 ' 500毫秒延时
+    TryCopyWithDelay = False
+    
+    For attempts = 1 To maxAttempts
         On Error Resume Next
-        newShp.ChangePage dstPage
-        ' 重新定位到 (0,0) 或保持相对位置，这里简单处理
-        ' 如果需要精确定位，可能需要计算边界框
+        Selection.Copy
+        If Err.Number = 0 Then
+            TryCopyWithDelay = True
+            Exit For ' 成功则退出循环
+        End If
         On Error GoTo 0
-    Next shp
-    
-    ' 如果上面的 Duplicate+ChangePage 有问题，可以使用最原始的 Selection 方法作为备选，但在本例中我们尝试更稳健的 API
-    ' 修正逻辑：Duplicate 会在原页创建副本，我们需要把它移到新页
-    ' 实际上，Visio VBA 中跨文档/跨页最稳的方法还是利用 Selection，但为了防崩溃，我们采用下面的简化版：
-    
-    ' 【最终修正方案】：直接使用 Source Page 的 Select + Destination Page 的 Paste
-    ' 为什么刚才不行？因为刚才是在循环里高频调用。现在是一个文件一个文件处理，频率低，剪贴板应该能跟上。
-    ' 如果还是怕剪贴板，可以用 Export/Import SVG，但太慢。
-    ' 让我们回退到最稳妥的 "Select All -> Copy -> Paste" 但加上延时，因为现在是单文件操作，风险小很多。
-    
-    srcPage.SelectAll
-    visApp.Selection.Copy
-    
-    dstPage.Paste
-    
-    ' 清理选择
-    visApp.Selection.DeselectAll
-End Sub
+        
+        ' 失败则延时后重试
+        Application.Wait Now + TimeValue("00:00:01") ' 等待 1 秒再试
+    Next attempts
+End Function
