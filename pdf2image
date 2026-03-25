@@ -1,0 +1,44 @@
+import fitz  # 导入 PyMuPDF
+
+
+def pdf_to_images_broken_file(pdf_path, output_folder):
+    import os
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    try:
+        # 打开 PDF，ignore 参数可以忽略一些非致命错误
+        doc = fitz.open(pdf_path)
+        print(f"成功打开文件，共 {len(doc)} 页。")
+
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+
+            # 设置缩放比例 (zoom)，300 DPI 约为 4.0 (72 * 4 = 288)
+            # 如果图片模糊，调大这个数值；如果内存不足，调小
+            zoom = 4.0
+            mat = fitz.Matrix(zoom, zoom)
+
+            # 渲染页面为图片 (pixmap)
+            # 对于损坏的文件，fitz 通常能比 pdf2image 渲染出更多内容
+            pix = page.get_pixmap(matrix=mat)
+
+            # 保存为 JPG
+            output_path = os.path.join(output_folder, f"page_{page_num + 1}.jpg")
+            pix.save(output_path)
+            print(f"已保存: {output_path}")
+
+        doc.close()
+        print("全部转换完成！")
+
+    except Exception as e:
+        print(f"发生错误: {e}")
+        print("提示：如果文件彻底损坏，连 PyMuPDF 也无法读取，建议尝试截图法。")
+
+
+# --- 配置区域 ---
+pdf_file = "C:/Users/zengq/Desktop/test.pdf"  # 替换为您的文件路径
+out_dir = "C:/Users/zengq/Desktop/test"  # 输出文件夹名称
+
+if __name__ == "__main__":
+    pdf_to_images_broken_file(pdf_file, out_dir)
